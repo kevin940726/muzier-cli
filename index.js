@@ -69,7 +69,7 @@ const getYoutubePlaylist = async (url, pageToken = '') => {
   };
 };
 
-const getSoundCloudPlaylist = async (url) => {
+const getSoundCloudPlaylist = async url => {
   const res = await SC.resolve(url);
 
   const playlist = res
@@ -90,9 +90,9 @@ const getSoundCloudPlaylist = async (url) => {
   return playlist;
 };
 
-const downloadYoutubeItem = item =>
+const downloadYoutubeItem = outDir => item =>
   new Promise(resolve => {
-    const output = fs.createWriteStream(path.join(process.cwd(), 'downloads', `${item.title}.mp3`));
+    const output = fs.createWriteStream(path.join(outDir, `${item.title}.mp3`));
 
     const video = ytdl(item.url);
 
@@ -103,8 +103,8 @@ const downloadYoutubeItem = item =>
     converter.run();
   });
 
-const downloadSoundCloudItem = async (item) => {
-  const output = fs.createWriteStream(path.join(process.cwd(), 'downloads', `${item.title}.mp3`));
+const downloadSoundCloudItem = outDir => async item => {
+  const output = fs.createWriteStream(path.join(outDir, `${item.title}.mp3`));
 
   const stream = await SC.download(item.url);
 
@@ -194,59 +194,55 @@ const defaultSoundCloudPlaylist = config.get('soundCloudPlaylist');
 
 prog
   .version(pkg.version)
-  .command('youtube', 'download youtube playlist tracks')
-  .argument('[url]', 'playlist URL or ID', /.*/g, defaultYoutubePlaylist)
+  .argument('<type>', 'type of playlist', /^youtube|soundcloud$/g)
+  .argument('[url]', 'playlist URL or ID')
   .option('--set-default', 'set the current playlist as default')
+  .option('--out <dir>', 'path to the output directory')
   .action(async (args, options, logger) => {
-    const { url } = args;
+    const { type } = args;
+    const outDir = options.out || process.cwd();
 
-    if (!url) return;
+    let res;
 
-    if (options.setDefault) {
-      config.set('youtubePlaylist', url);
+    if (type === 'youtube') { // youtube
+      const url = args.url || defaultYoutubePlaylist;
+
+      if (options.setDefault && url) {
+        config.set('youtubePlaylist', url);
+      }
+
+      const answers = await promptCall(url);
+
+      res = await Promise.all(answers.map(downloadYoutubeItem(outDir)));
+    } else { // soundcloud
+
+      const url = args.url || defaultSoundCloudPlaylist;
+
+      if (options.setDefault && url) {
+        config.set('soundCloudPlaylist', url);
+      }
+
+      const playlist = await getSoundCloudPlaylist(url);
+
+      const answers = await inquirer.prompt([
+        {
+          type: 'checkbox',
+          message: 'Select SoundCloud playlist items',
+          name: 'playlistItems',
+          choices: playlist,
+          pageSize: 10,
+        },
+      ]);
+
+      res = await Promise.all(answers.playlistItems.map(downloadSoundCloudItem(outDir)));
     }
-
-    const answers = await promptCall(url);
-
-    const res = await Promise.all(answers.map(downloadYoutubeItem));
-
-    await downloadProgress(res, logger);
-  });
-
-prog
-  .version(pkg.version)
-  .command('soundcloud', 'download soundcloud playlist tracks')
-  .argument('[url]', 'playlist URL or ID', /.*/g, defaultSoundCloudPlaylist)
-  .option('--set-default', 'set the current playlist as default')
-  .action(async (args, options, logger) => {
-    const { url } = args;
-
-    if (!url) return;
-
-    if (options.setDefault) {
-      config.set('soundCloudPlaylist', url);
-    }
-
-    const playlist = await getSoundCloudPlaylist(url);
-
-    const answers = await inquirer.prompt([
-      {
-        type: 'checkbox',
-        message: 'Select SoundCloud playlist items',
-        name: 'playlistItems',
-        choices: playlist,
-        pageSize: 10,
-      },
-    ]);
-
-    const res = await Promise.all(answers.playlistItems.map(downloadSoundCloudItem));
 
     await downloadProgress(res, logger);
   });
 
 prog.parse(process.argv);
 
-modules.exports = {
+module.exports = {
   getYoutubePlaylist,
   getSoundCloudPlaylist,
   downloadYoutubeItem,

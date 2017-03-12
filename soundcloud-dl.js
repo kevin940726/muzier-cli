@@ -1,6 +1,6 @@
 const https = require('https');
 const fetch = require('node-fetch');
-const queryString = require('query-string')
+const queryString = require('query-string');
 const { soundcloudClientId } = require('./credentials.json');
 const BASE = 'https://api.soundcloud.com';
 
@@ -9,9 +9,9 @@ function SoundCloud(clientId) {
 
   const api = async (endpoint, query = {}) => {
     try {
-      const res = await fetch(`${BASE}/${endpoint}?${queryString.stringify(Object.assign({}, {
-        client_id: this.clientId,
-      }, query))}`);
+      const res = await fetch(
+        `${BASE}/${endpoint}?${queryString.stringify(Object.assign({}, { client_id: this.clientId }, query))}`
+      );
       return res.json();
     } catch (err) {
       throw err;
@@ -19,16 +19,15 @@ function SoundCloud(clientId) {
   };
 
   return {
-    resolve: (url) => api('resolve', { url }),
-    download: (url) => (
+    resolve: url => api('resolve', { url }),
+    download: url =>
       new Promise((resolve, reject) => {
-        https.get(`${url}?client_id=${this.clientId}`, (res) => {
-          https.get(res.headers.location, (res) => {
+        https.get(`${url}?client_id=${this.clientId}`, res => {
+          https.get(res.headers.location, res => {
             resolve(res);
           });
         });
-      })
-    ),
+      }),
     resolveDownload: function(url) {
       return this.resolve(url).then(res => this.download(res.stream_url));
     },
