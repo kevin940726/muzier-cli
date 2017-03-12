@@ -89,28 +89,30 @@ const getSoundCloudPlaylist = async url => {
   return playlist;
 };
 
-const downloadYoutubeItem = outDir => item =>
-  new Promise(resolve => {
+const downloadYoutubeItem = outDir =>
+  item =>
+    new Promise(resolve => {
+      const output = fs.createWriteStream(path.join(outDir, `${item.title}.mp3`));
+
+      const video = ytdl(item.url);
+
+      video.on('response', resolve);
+
+      const converter = ffmpeg(video).format('mp3').audioQuality(0).output(output);
+
+      converter.run();
+    });
+
+const downloadSoundCloudItem = outDir =>
+  async item => {
     const output = fs.createWriteStream(path.join(outDir, `${item.title}.mp3`));
 
-    const video = ytdl(item.url);
+    const stream = await SC.download(item.url);
 
-    video.on('response', resolve);
+    stream.pipe(output);
 
-    const converter = ffmpeg(video).format('mp3').audioQuality(0).output(output);
-
-    converter.run();
-  });
-
-const downloadSoundCloudItem = outDir => async item => {
-  const output = fs.createWriteStream(path.join(outDir, `${item.title}.mp3`));
-
-  const stream = await SC.download(item.url);
-
-  stream.pipe(output);
-
-  return stream;
-};
+    return stream;
+  };
 
 const promptCall = async (youtubeUrl, pageToken = '', selected = {}) => {
   const { prev, next, playlist } = await getYoutubePlaylist(youtubeUrl, pageToken);
@@ -214,7 +216,8 @@ prog
 
     let res;
 
-    if (type === 'youtube') { // youtube
+    if (type === 'youtube') {
+      // youtube
       if (!config.has('youtubeKey')) {
         logger.error('Please set youtube api key first!');
         logger.error('muzier set youtube <key>');
@@ -222,7 +225,7 @@ prog
       }
       Youtube.authenticate({
         type: 'key',
-        key: config.get('youtubeKey')
+        key: config.get('youtubeKey'),
       });
 
       const url = args.url || defaultYoutubePlaylist;
@@ -234,7 +237,8 @@ prog
       const answers = await promptCall(url);
 
       res = await Promise.all(answers.map(downloadYoutubeItem(outDir)));
-    } else { // soundcloud
+    } else {
+      // soundcloud
       if (!config.has('soundcloudKey')) {
         logger.error('Please set soundcloud client id first!');
         logger.error('muzier set soundcloud <id>');
