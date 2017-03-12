@@ -14,11 +14,13 @@ const pkg = require('./package.json');
 
 Youtube.authenticate({
   type: 'key',
-  key: CREDENTIALS.youtubeApiKey // replace your api key here
+  key: CREDENTIALS.youtubeApiKey, // replace your api key here
 });
 
 const bindNodeCallback = (resolve, reject) => (err, res) => err ? reject(err) : resolve(res);
-const getYoutubePlaylistApi = (options = {}) => new Promise((resolve, reject) => Youtube.playlistItems.list(options, bindNodeCallback(resolve, reject)));
+const getYoutubePlaylistApi = (options = {}) =>
+  new Promise((resolve, reject) =>
+    Youtube.playlistItems.list(options, bindNodeCallback(resolve, reject)));
 
 const getYoutubePlaylist = async (url, pageToken = '') => {
   const isUrl = /list=(\w+)/g.exec(url);
@@ -29,16 +31,17 @@ const getYoutubePlaylist = async (url, pageToken = '') => {
     maxResults: 10,
     playlistId,
     pageToken,
-    fields: 'items(snippet(position,resourceId/videoId,thumbnails/default,title)),nextPageToken,prevPageToken'
+    fields: 'items(snippet(position,resourceId/videoId,thumbnails/default,title)),nextPageToken,prevPageToken',
   });
 
   const prevPageToken = playlistRes.prevPageToken;
   const nextPageToken = playlistRes.nextPageToken;
 
-  const makePageChoice = (name, pageToken) => pageToken && ({
-    name,
-    value: pageToken
-  });
+  const makePageChoice = (name, pageToken) =>
+    pageToken && {
+      name,
+      value: pageToken,
+    };
 
   const playlistItems = playlistRes.items
     .map(item => ({
@@ -46,50 +49,47 @@ const getYoutubePlaylist = async (url, pageToken = '') => {
       id: item.snippet.resourceId.videoId,
       thumbnail: item.snippet.thumbnails.default.url,
       title: item.snippet.title,
-      url: `http://www.youtube.com/watch?v=${item.snippet.resourceId.videoId}`
+      url: `http://www.youtube.com/watch?v=${item.snippet.resourceId.videoId}`,
     }))
     .map(item => ({
-      name: (`${chalk.bold(leftPad(item.index.toString(), 2))} ${chalk.green(item.title)} - ${chalk.dim(item.id)}`),
+      name: `${chalk.bold(leftPad(item.index.toString(), 2))} ${chalk.green(item.title)} - ${chalk.dim(item.id)}`,
       value: item,
-      short: item.index
+      short: item.index,
     }));
 
   return {
     prev: makePageChoice('<< prev page', prevPageToken),
     playlist: playlistItems,
-    next: makePageChoice('>> next page', nextPageToken)
+    next: makePageChoice('>> next page', nextPageToken),
   };
 };
 
-const downloadYoutubeItem = item => new Promise(resolve => {
-  const output = fs.createWriteStream(
-    path.join(process.cwd(), 'downloads', `${item.title}.mp3`)
-  );
+const downloadYoutubeItem = item =>
+  new Promise(resolve => {
+    const output = fs.createWriteStream(path.join(process.cwd(), 'downloads', `${item.title}.mp3`));
 
-  const video = ytdl(item.url);
+    const video = ytdl(item.url);
 
-  video.on('response', resolve);
+    video.on('response', resolve);
 
-  const converter = ffmpeg(video)
-    .format('mp3')
-    .audioQuality(0)
-    .output(output);
+    const converter = ffmpeg(video).format('mp3').audioQuality(0).output(output);
 
-  converter.run();
-});
+    converter.run();
+  });
 
 const promptCall = async (youtubeUrl, pageToken = '', selected = {}) => {
-  const {prev, next, playlist} = await getYoutubePlaylist(youtubeUrl, pageToken);
+  const { prev, next, playlist } = await getYoutubePlaylist(youtubeUrl, pageToken);
 
   const answers = await inquirer.prompt([
     {
       type: 'checkbox',
       message: 'Select Youtube playlist items',
       name: 'playlistItems',
-      choices: playlist.map(item => Object.assign({}, item, {
-        checked: Boolean(selected[item.value.id])
-      })),
-      pageSize: playlist.length
+      choices: playlist.map(item =>
+        Object.assign({}, item, {
+          checked: Boolean(selected[item.value.id]),
+        })),
+      pageSize: playlist.length,
     },
     {
       type: 'list',
@@ -99,20 +99,24 @@ const promptCall = async (youtubeUrl, pageToken = '', selected = {}) => {
         prev,
         {
           name: 'No',
-          value: 'No'
+          value: 'No',
         },
-        next
+        next,
       ].filter(Boolean),
-      default: 'No'
-    }
+      default: 'No',
+    },
   ]);
 
   const selectedItems = Object.assign(
     {},
     selected,
-    answers.playlistItems.reduce((map, cur) => Object.assign({}, map, {
-      [cur.id]: cur
-    }), {})
+    answers.playlistItems.reduce(
+      (map, cur) =>
+        Object.assign({}, map, {
+          [cur.id]: cur,
+        }),
+      {}
+    )
   );
   const nextPage = answers.continue;
 
@@ -123,32 +127,37 @@ const promptCall = async (youtubeUrl, pageToken = '', selected = {}) => {
   return Object.values(selectedItems);
 };
 
-prog.version(pkg.version)
+prog
+  .version(pkg.version)
   .argument('<youtubeUrl>', 'youtube playlist url')
   .action(async (args, options, logger) => {
-    const {youtubeUrl} = args;
+    const { youtubeUrl } = args;
 
     const answers = await promptCall(youtubeUrl);
 
     const res = await Promise.all(answers.map(downloadYoutubeItem));
 
-    const totalSize = res.map(video => Number(video.headers['content-length']))
+    const totalSize = res
+      .map(video => Number(video.headers['content-length']))
       .reduce((prev, cur) => prev + cur);
 
     const progress = nyanProgress();
 
     // start downloading and animate progress
-    Promise.all(res.map(video => new Promise((resolve, reject) => {
-      video.on('data', chunk => {
-        progress.tick(chunk.length);
-      });
-      video.on('end', resolve);
-      video.on('error', reject);
-    })))
-      // sometimes the ticking never end, come back here later
-      .then(() => progress.tick(Number.MAX_SAFE_INTEGER));
+    Promise.all(
+      res.map(
+        video =>
+          new Promise((resolve, reject) => {
+            video.on('data', chunk => {
+              progress.tick(chunk.length);
+            });
+            video.on('end', resolve);
+            video.on('error', reject);
+          })
+      )
+    ).then(() => progress.tick(Number.MAX_SAFE_INTEGER)); // sometimes the ticking never end, come back here later
 
-    await progress.start({total: totalSize});
+    await progress.start({ total: totalSize });
 
     logger.info('Download Completed!');
   });
