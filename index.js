@@ -11,12 +11,15 @@ const chalk = require('chalk');
 const leftPad = require('left-pad');
 const Conf = require('conf');
 const format = require('format-duration');
+const updateNotifier = require('update-notifier');
 const pkg = require('./package.json');
 const SoundCloud = require('./soundcloud-dl');
 
 const config = new Conf();
 
 const SC = new SoundCloud();
+
+updateNotifier({ pkg }).notify();
 
 const bindNodeCallback = (resolve, reject) => (err, res) => err ? reject(err) : resolve(res);
 const getYoutubePlaylistApi = (options = {}) =>

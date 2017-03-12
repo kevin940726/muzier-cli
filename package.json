@@ -21,6 +21,7 @@
     "node-fetch": "^1.6.3",
     "nyan-progress": "^1.1.0",
     "query-string": "^4.3.2",
+    "update-notifier": "^2.1.0",
     "youtube-api": "^2.0.6",
     "ytdl-core": "^0.10.0"
   },
