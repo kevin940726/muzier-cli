@@ -9,8 +9,13 @@ const ytdl = require('ytdl-core');
 const ffmpeg = require('fluent-ffmpeg');
 const chalk = require('chalk');
 const leftPad = require('left-pad');
+const Conf = require('conf');
+const format = require('format-duration');
 const CREDENTIALS = require('./credentials.json');
 const pkg = require('./package.json');
+const SC = require('./soundcloud-dl');
+
+const config = new Conf();
 
 Youtube.authenticate({
   type: 'key',
@@ -64,6 +69,27 @@ const getYoutubePlaylist = async (url, pageToken = '') => {
   };
 };
 
+const getSoundCloudPlaylist = async (url) => {
+  const res = await SC.resolve(url);
+
+  const playlist = res
+    .map((item, index) => ({
+      index: index + 1,
+      id: item.id,
+      thumbnail: item.artwork_url,
+      title: item.title,
+      url: item.stream_url,
+      duration: item.duration,
+    }))
+    .map(item => ({
+      name: `${chalk.bold(leftPad(item.index.toString(), 2))} ${chalk.green(item.title)} - ${chalk.dim(format(item.duration))}`,
+      value: item,
+      short: item.index,
+    }));
+
+  return playlist;
+};
+
 const downloadYoutubeItem = item =>
   new Promise(resolve => {
     const output = fs.createWriteStream(path.join(process.cwd(), 'downloads', `${item.title}.mp3`));
@@ -76,6 +102,16 @@ const downloadYoutubeItem = item =>
 
     converter.run();
   });
+
+const downloadSoundCloudItem = async (item) => {
+  const output = fs.createWriteStream(path.join(process.cwd(), 'downloads', `${item.title}.mp3`));
+
+  const stream = await SC.download(item.url);
+
+  stream.pipe(output);
+
+  return stream;
+};
 
 const promptCall = async (youtubeUrl, pageToken = '', selected = {}) => {
   const { prev, next, playlist } = await getYoutubePlaylist(youtubeUrl, pageToken);
@@ -127,39 +163,86 @@ const promptCall = async (youtubeUrl, pageToken = '', selected = {}) => {
   return Object.values(selectedItems);
 };
 
+const downloadProgress = async (res, logger = console) => {
+  const totalSize = res
+    .map(track => Number(track.headers['content-length']))
+    .reduce((prev, cur) => prev + cur);
+
+  const progress = nyanProgress();
+
+  // start downloading and animate progress
+  Promise.all(
+    res.map(
+      track =>
+        new Promise((resolve, reject) => {
+          track.on('data', chunk => {
+            progress.tick(chunk.length);
+          });
+          track.on('end', resolve);
+          track.on('error', reject);
+        })
+    )
+  ).then(() => progress.tick(Number.MAX_SAFE_INTEGER)); // sometimes the ticking never end, come back here later
+
+  await progress.start({ total: totalSize });
+
+  logger.info('Download Completed!');
+};
+
+const defaultYoutubePlaylist = config.get('youtubePlaylist');
+const defaultSoundCloudPlaylist = config.get('soundCloudPlaylist');
+
 prog
   .version(pkg.version)
-  .argument('<youtubeUrl>', 'youtube playlist url')
+  .command('youtube', 'download youtube playlist tracks')
+  .argument('[url]', 'playlist URL or ID', /.*/g, defaultYoutubePlaylist)
+  .option('--set-default', 'set the current playlist as default')
   .action(async (args, options, logger) => {
-    const { youtubeUrl } = args;
+    const { url } = args;
 
-    const answers = await promptCall(youtubeUrl);
+    if (!url) return;
+
+    if (options.setDefault) {
+      config.set('youtubePlaylist', url);
+    }
+
+    const answers = await promptCall(url);
 
     const res = await Promise.all(answers.map(downloadYoutubeItem));
 
-    const totalSize = res
-      .map(video => Number(video.headers['content-length']))
-      .reduce((prev, cur) => prev + cur);
-
-    const progress = nyanProgress();
-
-    // start downloading and animate progress
-    Promise.all(
-      res.map(
-        video =>
-          new Promise((resolve, reject) => {
-            video.on('data', chunk => {
-              progress.tick(chunk.length);
-            });
-            video.on('end', resolve);
-            video.on('error', reject);
-          })
-      )
-    ).then(() => progress.tick(Number.MAX_SAFE_INTEGER)); // sometimes the ticking never end, come back here later
-
-    await progress.start({ total: totalSize });
-
-    logger.info('Download Completed!');
+    await downloadProgress(res, logger);
   });
+
+prog
+  .version(pkg.version)
+  .command('soundcloud', 'download soundcloud playlist tracks')
+  .argument('[url]', 'playlist URL or ID', /.*/g, defaultSoundCloudPlaylist)
+  .option('--set-default', 'set the current playlist as default')
+  .action(async (args, options, logger) => {
+    const { url } = args;
+
+    if (!url) return;
+
+    if (options.setDefault) {
+      config.set('soundCloudPlaylist', url);
+    }
+
+    const playlist = await getSoundCloudPlaylist(url);
+
+    const answers = await inquirer.prompt([
+      {
+        type: 'checkbox',
+        message: 'Select SoundCloud playlist items',
+        name: 'playlistItems',
+        choices: playlist,
+        pageSize: 10,
+      },
+    ]);
+
+    const res = await Promise.all(answers.playlistItems.map(downloadSoundCloudItem));
+
+    await downloadProgress(res, logger);
+  });
+
 
 prog.parse(process.argv);
