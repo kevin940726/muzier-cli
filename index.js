@@ -244,5 +244,11 @@ prog
     await downloadProgress(res, logger);
   });
 
-
 prog.parse(process.argv);
+
+modules.exports = {
+  getYoutubePlaylist,
+  getSoundCloudPlaylist,
+  downloadYoutubeItem,
+  downloadSoundCloudItem,
+};
