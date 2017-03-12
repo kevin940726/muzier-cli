@@ -869,9 +869,9 @@ number-is-nan@^1.0.0:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/number-is-nan/-/number-is-nan-1.0.1.tgz#097b602b53422a522c1afb8790318336941a011d"
 
-nyan-progress@^1.0.1:
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/nyan-progress/-/nyan-progress-1.0.1.tgz#ea54ed7a527973968d1db159e6531e7521bb5446"
+nyan-progress@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/nyan-progress/-/nyan-progress-1.1.0.tgz#eaaab8c7984649d6ca767080853488e5e60fe456"
 
 oauth-sign@~0.8.1:
   version "0.8.2"
