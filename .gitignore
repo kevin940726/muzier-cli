@@ -1,0 +1,15 @@
+# node modules
+node_modules/
+
+# credentials
+credentials.json
+
+# Misc
+.DS_Store
+.vscode/
+
+# log
+*.log
+
+# development
+downloads/
