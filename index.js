@@ -11,16 +11,12 @@ const chalk = require('chalk');
 const leftPad = require('left-pad');
 const Conf = require('conf');
 const format = require('format-duration');
-const CREDENTIALS = require('./credentials.json');
 const pkg = require('./package.json');
-const SC = require('./soundcloud-dl');
+const SoundCloud = require('./soundcloud-dl');
 
 const config = new Conf();
 
-Youtube.authenticate({
-  type: 'key',
-  key: CREDENTIALS.youtubeApiKey, // replace your api key here
-});
+const SC = new SoundCloud();
 
 const bindNodeCallback = (resolve, reject) => (err, res) => err ? reject(err) : resolve(res);
 const getYoutubePlaylistApi = (options = {}) =>
@@ -194,6 +190,17 @@ const defaultSoundCloudPlaylist = config.get('soundCloudPlaylist');
 
 prog
   .version(pkg.version)
+  .command('setup', 'setup youtube and soundcloud api key')
+  .argument('<type>', 'type of api key', /^youtube|soundcloud$/g)
+  .argument('<key>', 'the api key', /^\w+$/g)
+  .action((args, options, logger) => {
+    const { type, key } = args;
+
+    config.set(`${type}Key`, key);
+  });
+
+prog
+  .version(pkg.version)
   .argument('<type>', 'type of playlist', /^youtube|soundcloud$/g)
   .argument('[url]', 'playlist URL or ID')
   .option('--set-default', 'set the current playlist as default')
@@ -205,6 +212,16 @@ prog
     let res;
 
     if (type === 'youtube') { // youtube
+      if (!config.has('youtubeKey')) {
+        logger.error('Please set youtube api key first!');
+        logger.error('muzier set youtube <key>');
+        return;
+      }
+      Youtube.authenticate({
+        type: 'key',
+        key: config.get('youtubeKey')
+      });
+
       const url = args.url || defaultYoutubePlaylist;
 
       if (options.setDefault && url) {
@@ -215,6 +232,12 @@ prog
 
       res = await Promise.all(answers.map(downloadYoutubeItem(outDir)));
     } else { // soundcloud
+      if (!config.has('soundcloudKey')) {
+        logger.error('Please set soundcloud client id first!');
+        logger.error('muzier set soundcloud <id>');
+        return;
+      }
+      SC.init(config.get('soundcloudKey'));
 
       const url = args.url || defaultSoundCloudPlaylist;
 

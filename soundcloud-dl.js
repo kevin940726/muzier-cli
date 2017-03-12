@@ -1,10 +1,9 @@
 const https = require('https');
 const fetch = require('node-fetch');
 const queryString = require('query-string');
-const { soundcloudClientId } = require('./credentials.json');
 const BASE = 'https://api.soundcloud.com';
 
-function SoundCloud(clientId) {
+function SoundCloud(clientId = '') {
   this.clientId = clientId;
 
   const api = async (endpoint, query = {}) => {
@@ -19,6 +18,7 @@ function SoundCloud(clientId) {
   };
 
   return {
+    init: key => this.clientId = key,
     resolve: url => api('resolve', { url }),
     download: url =>
       new Promise((resolve, reject) => {
@@ -34,10 +34,5 @@ function SoundCloud(clientId) {
   };
 }
 
-const SC = SoundCloud(soundcloudClientId);
-
-module.exports = SC;
-exports.default = SC;
-
-// SC.resolve('https://soundcloud.com/kevin940726/likes')
-//   .then(console.log);
+module.exports = SoundCloud;
+exports.default = SoundCloud;
