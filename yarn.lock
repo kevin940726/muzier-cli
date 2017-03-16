@@ -488,6 +488,18 @@ figures@^2.0.0:
   dependencies:
     escape-string-regexp "^1.0.5"
 
+filename-reserved-regex@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/filename-reserved-regex/-/filename-reserved-regex-2.0.0.tgz#abf73dfab735d045440abfea2d91f389ebbfa229"
+
+filenamify@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/filenamify/-/filenamify-2.0.0.tgz#bd162262c0b6e94bfbcdcf19a3bbb3764f785695"
+  dependencies:
+    filename-reserved-regex "^2.0.0"
+    strip-outer "^1.0.0"
+    trim-repeated "^1.0.0"
+
 find-config@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/find-config/-/find-config-1.0.0.tgz#eafa2b9bc07fa9c90e9a0c3ef9cecf1cc800f530"
@@ -1489,6 +1501,12 @@ strip-json-comments@~2.0.1:
   version "2.0.1"
   resolved "https://registry.yarnpkg.com/strip-json-comments/-/strip-json-comments-2.0.1.tgz#3c531942e908c2697c0ec344858c286c7ca0a60a"
 
+strip-outer@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/strip-outer/-/strip-outer-1.0.0.tgz#aac0ba60d2e90c5d4f275fd8869fd9a2d310ffb8"
+  dependencies:
+    escape-string-regexp "^1.0.2"
+
 supports-color@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/supports-color/-/supports-color-2.0.0.tgz#535d045ce6b6363fa40117084629995e9df324c7"
@@ -1541,6 +1559,12 @@ tough-cookie@~2.3.0:
   resolved "https://registry.yarnpkg.com/tough-cookie/-/tough-cookie-2.3.2.tgz#f081f76e4c85720e6c37a5faced737150d84072a"
   dependencies:
     punycode "^1.4.1"
+
+trim-repeated@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/trim-repeated/-/trim-repeated-1.0.0.tgz#e3646a2ea4e891312bf7eace6cfb05380bc01c21"
+  dependencies:
+    escape-string-regexp "^1.0.2"
 
 tunnel-agent@~0.4.1:
   version "0.4.3"

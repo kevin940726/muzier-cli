@@ -13,6 +13,7 @@ const leftPad = require('left-pad');
 const Conf = require('conf');
 const format = require('format-duration');
 const updateNotifier = require('update-notifier');
+const filenamify = require('filenamify');
 const pkg = require('./package.json');
 const SoundCloud = require('./soundcloud-dl');
 
@@ -93,7 +94,7 @@ const getSoundCloudPlaylist = async url => {
 const downloadYoutubeItem = outDir =>
   item =>
     new Promise(resolve => {
-      const output = fs.createWriteStream(path.join(outDir, `${item.title}.mp3`));
+      const output = fs.createWriteStream(path.join(outDir, `${filenamify(item.title)}.mp3`));
 
       const video = ytdl(item.url);
 
@@ -106,7 +107,7 @@ const downloadYoutubeItem = outDir =>
 
 const downloadSoundCloudItem = outDir =>
   async item => {
-    const output = fs.createWriteStream(path.join(outDir, `${item.title}.mp3`));
+    const output = fs.createWriteStream(path.join(outDir, `${filenamify(item.title)}.mp3`));
 
     const stream = await SC.download(item.url);
 
