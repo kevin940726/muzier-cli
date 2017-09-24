@@ -14,6 +14,7 @@ const Conf = require('conf');
 const format = require('format-duration');
 const updateNotifier = require('update-notifier');
 const filenamify = require('filenamify');
+const pAll = require('p-all');
 const pkg = require('./package.json');
 const SoundCloud = require('./soundcloud-dl');
 
@@ -53,7 +54,7 @@ const getYoutubePlaylist = async (url, pageToken = '') => {
     .map(item => ({
       index: Number(item.snippet.position) + 1,
       id: item.snippet.resourceId.videoId,
-      thumbnail: item.snippet.thumbnails.default.url,
+      thumbnail: item.snippet.thumbnails && item.snippet.thumbnails.default.url,
       title: item.snippet.title,
       url: `http://www.youtube.com/watch?v=${item.snippet.resourceId.videoId}`,
     }))
@@ -92,7 +93,7 @@ const getSoundCloudPlaylist = async url => {
 };
 
 const downloadYoutubeItem = outDir =>
-  item =>
+  item => () =>
     new Promise(resolve => {
       const output = fs.createWriteStream(path.join(outDir, `${filenamify(item.title)}.mp3`));
 
@@ -106,7 +107,7 @@ const downloadYoutubeItem = outDir =>
     });
 
 const downloadSoundCloudItem = outDir =>
-  async item => {
+  item => async () => {
     const output = fs.createWriteStream(path.join(outDir, `${filenamify(item.title)}.mp3`));
 
     const stream = await SC.download(item.url);
@@ -199,7 +200,7 @@ prog
   .version(pkg.version)
   .command('setup', 'setup youtube and soundcloud api key')
   .argument('<type>', 'type of api key', /^youtube|soundcloud$/g)
-  .argument('<key>', 'the api key', /^\w+$/g)
+  .argument('<key>', 'the api key', /^[\w-_]+$/g)
   .action((args, options, logger) => {
     const { type, key } = args;
 
@@ -238,7 +239,10 @@ prog
 
       const answers = await promptCall(url);
 
-      res = await Promise.all(answers.map(downloadYoutubeItem(outDir)));
+      res = await pAll(
+        answers.map(downloadYoutubeItem(outDir)),
+        { concurrency: 10 }
+      );
     } else {
       // soundcloud
       if (!config.has('soundcloudKey')) {
@@ -266,7 +270,10 @@ prog
         },
       ]);
 
-      res = await Promise.all(answers.playlistItems.map(downloadSoundCloudItem(outDir)));
+      res = await pAll(
+        answers.playlistItems.map(downloadSoundCloudItem(outDir)),
+        { concurrency: 10 }
+      );
     }
 
     await downloadProgress(res, logger);
