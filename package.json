@@ -3,7 +3,7 @@
   "version": "0.4.0",
   "description": "The muzier command line interface.",
   "preferGlobal": true,
-  "main": "index.js",
+  "main": "src/core.js",
   "bin": {
     "muzier": "muzier-cli.js"
   },

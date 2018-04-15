@@ -1,12 +1,16 @@
 import path from 'path';
 import prog from 'caporal';
 import Config from 'conf';
+import updateNotifier from 'update-notifier';
+import pkg from '../package.json';
 import {
   getYoutubePlaylist,
   getLastDownloadTrack,
   getDownloadRange,
 } from './core';
 import youtube from './services/youtube';
+
+updateNotifier({ pkg }).notify();
 
 const config = new Config();
 
