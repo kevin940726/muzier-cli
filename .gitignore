@@ -3,6 +3,7 @@ node_modules/
 
 # credentials
 credentials.json
+.env
 
 # Misc
 .DS_Store
