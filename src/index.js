@@ -1,33 +1,63 @@
 import path from 'path';
 import prog from 'caporal';
+import inquirer from 'inquirer';
 import Config from 'conf';
 import updateNotifier from 'update-notifier';
 import pkg from '../package.json';
-import {
-  getYoutubePlaylist,
-  getLastDownloadTrack,
-  getDownloadRange,
-} from './core';
-import youtube from './services/youtube';
+import { download } from './core';
 
 updateNotifier({ pkg }).notify();
 
 const config = new Config();
 
-const { YOUTUBE_PLAYLIST_ID } = process.env;
+const getConfig = name => process.env[name] || config.get(name);
 
-(async () => {
-  const outputDirectory = path.resolve(process.cwd(), 'downloads');
+const questions = [
+  {
+    type: 'input',
+    name: 'YOUTUBE_API_KEY',
+    message: 'Please set youtube API key',
+    default: getConfig('YOUTUBE_API_KEY'),
+    validate: Boolean,
+  },
+  {
+    type: 'input',
+    name: 'YOUTUBE_PLAYLIST_ID',
+    message: 'Please enter youtube playlist ID',
+    default: getConfig('YOUTUBE_PLAYLIST_ID'),
+    validate: Boolean,
+  },
+  {
+    type: 'output',
+    name: 'OUTPUT_DIRECTORY',
+    message: 'Please specify the output directory',
+    default: getConfig('OUTPUT_DIRECTORY'),
+    validate: Boolean,
+  },
+];
 
-  const lastDownloadTrack = await getLastDownloadTrack(outputDirectory);
+prog
+  .version(pkg.version)
+  .description(pkg.description)
+  .option('-y', 'yes to all', prog.BOOL)
+  .action(async (args, options) => {
+    let prompts = questions;
 
-  const downloadRange = await getDownloadRange(
-    YOUTUBE_PLAYLIST_ID,
-    lastDownloadTrack
-  );
+    if (options.y) {
+      prompts = questions.filter(q => !q.default);
+    }
 
-  return downloadRange.reduce(
-    (chain, track) => chain.then(() => youtube(track, outputDirectory)),
-    Promise.resolve()
-  );
-})();
+    const answers = await inquirer.prompt(prompts);
+
+    Object.entries(answers).forEach(([name, value]) => {
+      if (name === 'OUTPUT_DIRECTORY') {
+        config.set(name, path.resolve(process.cwd(), value));
+      } else {
+        config.set(name, value);
+      }
+    });
+
+    await download();
+  });
+
+prog.parse(process.argv);

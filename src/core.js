@@ -1,12 +1,16 @@
 import fs from 'fs';
 import path from 'path';
 import { promisify } from 'util';
+import Config from 'conf';
 import ffmpeg from 'fluent-ffmpeg';
 import filenamify from 'filenamify';
+import chalk from 'chalk';
 import { getYoutubePlaylistAPI } from './apis';
+import youtube from './services/youtube';
 
 const readdir = promisify(fs.readdir);
 const readStat = promisify(fs.stat);
+const config = new Config();
 
 export const getYoutubePlaylist = async (url, pageToken = '') => {
   const isUrl = /list=(\w+)/g.exec(url);
@@ -48,11 +52,11 @@ export const getLastDownloadTrack = async outputDirectory => {
     })
   );
 
-  const sorted = filesWithStats
-    .sort((prev, cur) => cur.lastModifiedTime - prev.lastModifiedTime)
-    .map(({ file }) => file);
+  const sorted = filesWithStats.sort(
+    (prev, cur) => cur.lastModifiedTime - prev.lastModifiedTime
+  );
 
-  return sorted[0];
+  return sorted[0].file;
 };
 
 export const getDownloadRange = async (
@@ -81,5 +85,31 @@ export const getDownloadRange = async (
     lastDownloadTrack,
     [...totalTracks, ...tracks],
     nextPageToken
+  );
+};
+
+export const download = async () => {
+  const outputDirectory = config.get('OUTPUT_DIRECTORY') || process.cwd();
+
+  const lastDownloadTrack = await getLastDownloadTrack(outputDirectory);
+
+  const downloadRange = await getDownloadRange(
+    config.get('YOUTUBE_PLAYLIST_ID'),
+    lastDownloadTrack
+  );
+
+  if (!downloadRange.length) {
+    console.log(chalk.yellow`You are up to date!`);
+    return;
+  }
+
+  console.log(chalk.cyan.bold`Tracks to download:`);
+  console.log(
+    chalk.cyan(downloadRange.map(track => `- ${track.title}`).join('\n') + '\n')
+  );
+
+  return downloadRange.reduce(
+    (chain, track) => chain.then(() => youtube(track, outputDirectory)),
+    Promise.resolve()
   );
 };

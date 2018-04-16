@@ -1,10 +1,11 @@
 import Youtube from 'youtube-api';
+import Config from 'conf';
 
-const { YOUTUBE_API_KEY } = process.env;
+const config = new Config();
 
 Youtube.authenticate({
   type: 'key',
-  key: YOUTUBE_API_KEY,
+  key: config.get('YOUTUBE_API_KEY'),
 });
 
 export const getYoutubePlaylistAPI = (playlistID, options = {}) =>
