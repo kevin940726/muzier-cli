@@ -1,13 +1,16 @@
 {
   "name": "muzier-cli",
   "version": "0.5.1",
-  "description": "The muzier command line interface.",
+  "description": "A command line interface to download mp3 from Youtube.",
   "preferGlobal": true,
   "main": "src/core.js",
   "bin": {
     "muzier": "muzier-cli.js"
   },
-  "repository": "git://github.com/kevin940726/muzier-cli.git",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/kevin940726/muzier-cli.git"
+  },
   "author": "Kai Hao",
   "license": "MIT",
   "dependencies": {
@@ -25,11 +28,11 @@
     "youtube-api": "^2.0.6"
   },
   "env": {
-    "node": ">= 8.0.0"
+    "node": ">= 8"
   },
   "scripts": {
-    "pretest": "npm run prettier",
-    "prettier": "prettier --write ./**/*.js"
+    "pretest": "npm run format",
+    "format": "prettier --write ./**/*.js"
   },
   "devDependencies": {
     "emoji-cz": "^0.3.0",

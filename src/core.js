@@ -88,7 +88,7 @@ export const getDownloadRange = async (
   );
 };
 
-export const download = async () => {
+export const download = async options => {
   const outputDirectory = config.get('OUTPUT_DIRECTORY') || process.cwd();
 
   const lastDownloadTrack = await getLastDownloadTrack(outputDirectory);
@@ -108,9 +108,11 @@ export const download = async () => {
     chalk.cyan(downloadRange.map(track => `- ${track.title}`).join('\n') + '\n')
   );
 
-  // start download from the bottom
-  return downloadRange.reduceRight(
-    (chain, track) => chain.then(() => youtube(track, outputDirectory)),
-    Promise.resolve()
-  );
+  if (!options.dry) {
+    // start download from the bottom
+    return downloadRange.reduceRight(
+      (chain, track) => chain.then(() => youtube(track, outputDirectory)),
+      Promise.resolve()
+    );
+  }
 };

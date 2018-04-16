@@ -14,6 +14,13 @@ const getConfig = name => process.env[name] || config.get(name);
 
 const questions = [
   {
+    type: 'output',
+    name: 'OUTPUT_DIRECTORY',
+    message: 'Please specify the output directory',
+    default: getConfig('OUTPUT_DIRECTORY'),
+    validate: Boolean,
+  },
+  {
     type: 'input',
     name: 'YOUTUBE_API_KEY',
     message: 'Please set youtube API key',
@@ -27,19 +34,13 @@ const questions = [
     default: getConfig('YOUTUBE_PLAYLIST_ID'),
     validate: Boolean,
   },
-  {
-    type: 'output',
-    name: 'OUTPUT_DIRECTORY',
-    message: 'Please specify the output directory',
-    default: getConfig('OUTPUT_DIRECTORY'),
-    validate: Boolean,
-  },
 ];
 
 prog
   .version(pkg.version)
   .description(pkg.description)
   .option('-y', 'yes to all', prog.BOOL)
+  .option('-dry', 'dry run', prog.BOOL)
   .action(async (args, options) => {
     let prompts = questions;
 
@@ -57,7 +58,7 @@ prog
       }
     });
 
-    await download();
+    await download(options);
   });
 
 prog.parse(process.argv);
