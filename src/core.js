@@ -108,7 +108,8 @@ export const download = async () => {
     chalk.cyan(downloadRange.map(track => `- ${track.title}`).join('\n') + '\n')
   );
 
-  return downloadRange.reduce(
+  // start download from the bottom
+  return downloadRange.reduceRight(
     (chain, track) => chain.then(() => youtube(track, outputDirectory)),
     Promise.resolve()
   );
