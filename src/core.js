@@ -25,13 +25,15 @@ export const getYoutubePlaylist = async (url, pageToken = '') => {
   );
 
   return {
-    tracks: items.map(({ snippet }) => ({
-      source: 'youtube',
-      id: snippet.resourceId.videoId,
-      thumbnail: snippet.thumbnails && snippet.thumbnails.default.url,
-      title: snippet.title,
-      url: `http://youtube.com/watch?v=${snippet.resourceId.videoId}`,
-    })),
+    tracks: items
+      .filter(({ snippet }) => snippet.resourceId.videoId)
+      .map(({ snippet }) => ({
+        source: 'youtube',
+        id: snippet.resourceId.videoId,
+        thumbnail: snippet.thumbnails && snippet.thumbnails.default.url,
+        title: snippet.title,
+        url: `http://youtube.com/watch?v=${snippet.resourceId.videoId}`,
+      })),
     prevPageToken,
     nextPageToken,
   };
