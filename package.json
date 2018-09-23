@@ -1,6 +1,6 @@
 {
   "name": "muzier-cli",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "A command line interface to download mp3 from Youtube.",
   "preferGlobal": true,
   "main": "src/core.js",
